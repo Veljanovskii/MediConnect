@@ -2,7 +2,7 @@ from datetime import datetime
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from . import crud, models, schemas, dependencies, seed
+from . import models, schemas, dependencies, seed
 from .services.consultation_service import ConsultationService
 from .services.medical_history_service import MedicalHistoryService
 from .services.treatment_machine_service import TreatmentMachineService
@@ -16,12 +16,6 @@ app = FastAPI()
 @app.on_event("startup")
 def startup_event():
     seed.seed_data()
-
-@app.get("/doctors/", response_model=List[schemas.Doctor])
-def read_doctors(skip: int = 0, limit: int = 100, db: Session = Depends(dependencies.get_db)):
-    doctors = crud.get_doctors(db, skip=skip, limit=limit)
-    return doctors
-
 
 @app.post("/schedule_consultation/", response_model=schemas.ConsultationWithMedicalHistory)
 def schedule_consultation(consultation: schemas.ConsultationCreate, db: Session = Depends(dependencies.get_db)):
