@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <Folder Include="Consultations\Dto\" />
-    <Folder Include="Data\" />
     <Folder Include="Doctors\UpdateAvailability\" />
   </ItemGroup>
 

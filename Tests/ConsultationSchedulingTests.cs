@@ -1,5 +1,5 @@
 using Application.Consultations.Schedule;
-using Application.Data;
+using Domain.Interfaces;
 using Domain.Entities;
 using MockQueryable.Moq;
 using Moq;
@@ -13,7 +13,7 @@ namespace Tests
         private Mock<IRepository<Consultation>> _consultationRepositoryMock;
         private Mock<IRepository<Doctor>> _doctorRepositoryMock;
         private Mock<IRepository<MedicalHistory>> _medicalHistoryRepositoryMock;
-        private Mock<IRepository<TreatmentMachine>> _treatmentMachineRepositoryMock;
+        private Mock<IRepository<Patient>> _patientRepositoryMock;
         private Mock<IRepository<TreatmentRoom>> _treatmentRoomRepositoryMock;
         private ScheduleConsultationCommandHandler _handler;
 
@@ -23,12 +23,12 @@ namespace Tests
             _consultationRepositoryMock = new Mock<IRepository<Consultation>>();
             _doctorRepositoryMock = new Mock<IRepository<Doctor>>();
             _medicalHistoryRepositoryMock = new Mock<IRepository<MedicalHistory>>();
-            _treatmentMachineRepositoryMock = new Mock<IRepository<TreatmentMachine>>();
+            _patientRepositoryMock = new Mock<IRepository<Patient>>();
             _treatmentRoomRepositoryMock = new Mock<IRepository<TreatmentRoom>>();
             _handler = new ScheduleConsultationCommandHandler(_doctorRepositoryMock.Object,
                 _medicalHistoryRepositoryMock.Object,
                 _consultationRepositoryMock.Object,
-                _treatmentMachineRepositoryMock.Object,
+                _patientRepositoryMock.Object,
                 _treatmentRoomRepositoryMock.Object);
         }
 
@@ -44,25 +44,32 @@ namespace Tests
 
             var command = new ScheduleConsultationCommand(doctorId, patientId, treatmentRoomId, startTime, isUrgent);
 
+            var doctor = Doctor.Create(doctorId, "Dr. Cardio", "cardio@example.com", Specialization.Cardiologist, true);
             _doctorRepositoryMock.Setup(repo => repo.GetByIdAsync(doctorId))
-                .ReturnsAsync(new Doctor { Id = doctorId, IsAvailable = true, Specialization = Specialization.Cardiologist });
+                .ReturnsAsync(doctor);
+
+            var patient = Patient.Create("Alice Johnson", "alice@example.com", DateTime.UtcNow);
+            _patientRepositoryMock.Setup(repo => repo.GetByIdAsync(patientId))
+                .ReturnsAsync(patient);
+
+            var cardiologyHistory = MedicalHistory.Create(patientId, "Cardiologist", "Has a history of heart conditions.");
+            var neurologyHistory = MedicalHistory.Create(patientId, "Neurologist", "Has a history of neurological disorders.");
+
+            patient.AddMedicalHistory(cardiologyHistory);
+            patient.AddMedicalHistory(neurologyHistory);
 
             var medicalHistoryData = new List<MedicalHistory>
             {
-                new MedicalHistory { Condition = "Cardiologist", PatientId = patientId },
-                new MedicalHistory { Condition = "Neurologist", PatientId = patientId }
+                cardiologyHistory,
+                neurologyHistory
             }.AsQueryable();
 
             var mockMedicalHistory = medicalHistoryData.BuildMock();
-
             _medicalHistoryRepositoryMock.Setup(repo => repo.Table)
                 .Returns(mockMedicalHistory);
 
-            _treatmentRoomRepositoryMock.Setup(repo => repo.GetByIdAsync(treatmentRoomId))
-                .ReturnsAsync(new TreatmentRoom { Id = treatmentRoomId, RoomType = "Cardiologist" });
-
-            _consultationRepositoryMock.Setup(repo => repo.InsertAsync(It.IsAny<Consultation>()))
-                .Returns(Task.CompletedTask);
+            var treatmentRoom = TreatmentRoom.Create("Cardiology Room", "Cardiologist");
+            _treatmentRoomRepositoryMock.Setup(repo => repo.GetByIdAsync(treatmentRoomId)).ReturnsAsync(treatmentRoom);
 
             var mockConsultationData = new List<Consultation>().AsQueryable().BuildMock();
             _consultationRepositoryMock.Setup(repo => repo.Table)

@@ -1,4 +1,4 @@
-﻿using Application.Data;
+﻿using Domain.Interfaces;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities.Base;
@@ -16,20 +16,11 @@ public class Repository<TEntity> : IRepository<TEntity> where TEntity : BaseEnti
         _targetDbSet = _context.Set<TEntity>();
     }
 
-    /// <summary>
-    /// Get entity by identifier
-    /// </summary>
-    /// <param name="id">Identifier</param>
-    /// <returns>Entity</returns>
     public async Task<TEntity?> GetByIdAsync(int id)
     {
         return await _targetDbSet.FirstOrDefaultAsync(x => x.Id == id);
     }
 
-    /// <summary>
-    /// Insert entity
-    /// </summary>
-    /// <param name="entity">Entity</param>
     public async Task InsertAsync(TEntity entity)
     {
         await _targetDbSet.AddAsync(entity);
@@ -37,66 +28,75 @@ public class Repository<TEntity> : IRepository<TEntity> where TEntity : BaseEnti
         await _context.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Insert entities
-    /// </summary>
-    /// <param name="entities">Entities</param>
     public async Task InsertAsync(IEnumerable<TEntity> entities)
     {
         await _targetDbSet.AddRangeAsync(entities);
         await _context.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Update entity
-    /// </summary>
-    /// <param name="entity">Entity</param>
     public async Task UpdateAsync(TEntity entity)
     {
         _targetDbSet.Update(entity);
         await _context.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Update entities
-    /// </summary>
-    /// <param name="entities">Entities</param>
     public async Task UpdateAsync(IEnumerable<TEntity> entities)
     {
         _targetDbSet.UpdateRange(entities);
         await _context.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Delete entity
-    /// </summary>
-    /// <param name="entity">Entity</param>
     public async Task DeleteAsync(TEntity entity)
     {
         _targetDbSet.Remove(entity);
         await _context.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Delete entities
-    /// </summary>
-    /// <param name="entities">Entities</param>
     public async Task DeleteAsync(IEnumerable<TEntity> entities)
     {
         _targetDbSet.RemoveRange(entities);
         await _context.SaveChangesAsync();
     }
     
-    /// <summary>
-    /// Begin Transaction
-    /// </summary>
-    public IDbContextTransaction BeginTransaction()
+    public async Task<TEntity?> GetAsync(ISpecification<TEntity> spec)
     {
-        return _context!.Database.BeginTransaction();
+        var query = _targetDbSet.AsQueryable();
+
+        // Apply criteria from specification
+        if (spec.Criteria != null)
+            query = query.Where(spec.Criteria);
+
+        // Apply includes
+        query = spec.Includes.Aggregate(query,
+                (current, include) => current.Include(include));
+
+        query = spec.IncludeStrings.Aggregate(query,
+                (current, include) => current.Include(include));
+
+        return await query.FirstOrDefaultAsync();
     }
 
-    /// <summary>
-    /// Gets a table
-    /// </summary>
+    public async Task<IEnumerable<TEntity>> ListAsync(ISpecification<TEntity> spec)
+    {
+        var query = _targetDbSet.AsQueryable();
+
+        // Apply criteria from specification
+        if (spec.Criteria != null)
+            query = query.Where(spec.Criteria);
+
+        // Apply includes
+        foreach (var include in spec.Includes)
+        {
+            query = query.Include(include);
+        }
+
+        foreach (var includeString in spec.IncludeStrings)
+        {
+            query = query.Include(includeString);
+        }
+
+        return await query.ToListAsync();
+    }
+
     public IQueryable<TEntity> Table => _targetDbSet.AsQueryable();
 }

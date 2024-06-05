@@ -1,4 +1,4 @@
-﻿using Application.Data;
+﻿using Domain.Interfaces;
 using Domain.Entities;
 using MediatR;
 
@@ -19,9 +19,9 @@ public class UpdateMachineMaintenanceStatusCommandHandler : IRequestHandler<Upda
         if (machine == null)
             throw new ArgumentException("Treatment machine not found.");
 
-        machine.UnderMaintenance = request.NewStatus;
+        machine.SetMaintenanceStatus(request.NewStatus);
         await _treatmentMachineRepository.UpdateAsync(machine);
-        
+
         return machine.Id;
     }
 }

@@ -1,4 +1,4 @@
-﻿using Application.Data;
+﻿using Domain.Interfaces;
 using Domain.Entities;
 using MediatR;
 
@@ -15,15 +15,14 @@ public class AddMedicalConditionCommandHandler : IRequestHandler<AddMedicalCondi
 
     public async Task<int> Handle(AddMedicalConditionCommand request, CancellationToken cancellationToken)
     {
-        var newMedicalHistory = new MedicalHistory
-        {
-            PatientId = request.PatientId,
-            Condition = request.Condition,
-            HistoryDetails = request.HistoryDetails
-        };
+        var newMedicalHistory = MedicalHistory.Create(
+            request.PatientId,
+            request.Condition,
+            request.HistoryDetails
+        );
 
         await _medicalHistoryRepository.InsertAsync(newMedicalHistory);
-        
+
         return newMedicalHistory.Id;
     }
 }

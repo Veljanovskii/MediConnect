@@ -13,62 +13,55 @@ public static class SeedingConfiguration
         // Seed Doctors
         if (!dbContext.Doctors.Any())
         {
-            dbContext.Doctors.AddRange(
-                new Doctor { Name = "Dr. Smith", Email = "dr.smith@example.com", Specialization = Specialization.Cardiologist },
-                new Doctor { Name = "Dr. Jones", Email = "dr.jones@example.com", Specialization = Specialization.Neurologist },
-                new Doctor { Name = "Dr. Green", Email = "dr.green@example.com", Specialization = Specialization.Dermatologist }
-            );
+            var doctors = new List<Doctor>
+            {
+                Doctor.Create(1, "Dr. Smith", "dr.smith@example.com", Specialization.Cardiologist, true),
+                Doctor.Create(2, "Dr. Jones", "dr.jones@example.com", Specialization.Neurologist, true),
+                Doctor.Create(3, "Dr. Green", "dr.green@example.com", Specialization.Dermatologist, true)
+            };
+            dbContext.Doctors.AddRange(doctors);
+            dbContext.SaveChanges();
         }
 
-        // Seed Patients
+        // Seed Patients and Medical Histories
         if (!dbContext.Patients.Any())
         {
-            var patients = new List<Patient>
-            {
-                new() { Name = "Alice Johnson", Email = "alice@example.com", RegistrationDate = DateTime.UtcNow },
-                new() { Name = "Bob Smith", Email = "bob@example.com", RegistrationDate = DateTime.UtcNow }
-            };
-            dbContext.Patients.AddRange(patients);
+            var alice = Patient.Create("Alice Johnson", "alice@example.com", DateTime.UtcNow);
+            var bob = Patient.Create("Bob Smith", "bob@example.com", DateTime.UtcNow);
+            dbContext.Patients.AddRange(new[] { alice, bob });
             dbContext.SaveChanges();
 
-            // Seed Medical Histories using actual Patient IDs
-            if (!dbContext.MedicalHistories.Any())
+            var histories = new List<MedicalHistory>
             {
-                dbContext.MedicalHistories.AddRange(
-                    new MedicalHistory { PatientId = patients[0].Id, Condition = "Cardiologist", HistoryDetails = "Has a history of heart conditions." },
-                    new MedicalHistory { PatientId = patients[1].Id, Condition = "Neurologist", HistoryDetails = "Has a history of neurological disorders." }
-                );
-                dbContext.SaveChanges();
-            }
+                MedicalHistory.Create(alice.Id, "Cardiologist", "Has a history of heart conditions."),
+                MedicalHistory.Create(bob.Id, "Neurologist", "Has a history of neurological disorders.")
+            };
+            dbContext.MedicalHistories.AddRange(histories);
+            dbContext.SaveChanges();
         }
 
-        // Seed Treatment Rooms
+        // Seed Treatment Rooms and Machines
         if (!dbContext.TreatmentRooms.Any())
         {
-            var cardiologyRoom = new TreatmentRoom { Name = "Cardiology Room", RoomType = "Cardiologist" };
-            var neurologyRoom = new TreatmentRoom { Name = "Neurology Room", RoomType = "Neurologist" };
-            var dermatologyRoom = new TreatmentRoom { Name = "Dermatology Room", RoomType = "Dermatologist" };
-            var generalRoom1 = new TreatmentRoom { Name = "General Room 1" };
-            var generalRoom2 = new TreatmentRoom { Name = "General Room 2" };
-
-            dbContext.TreatmentRooms.AddRange(cardiologyRoom, neurologyRoom, dermatologyRoom, generalRoom1, generalRoom2);
+            var cardiologyRoom = TreatmentRoom.Create("Cardiology Room", "Cardiologist");
+            var neurologyRoom = TreatmentRoom.Create("Neurology Room", "Neurologist");
+            var dermatologyRoom = TreatmentRoom.Create("Dermatology Room", "Dermatologist");
+            var generalRoom1 = TreatmentRoom.Create("General Room 1", null);
+            var generalRoom2 = TreatmentRoom.Create("General Room 2", null);
+            dbContext.TreatmentRooms.AddRange(new[] { cardiologyRoom, neurologyRoom, dermatologyRoom, generalRoom1, generalRoom2 });
             dbContext.SaveChanges();
 
-            // Seed Treatment Machines with Room IDs
             if (!dbContext.TreatmentMachines.Any())
             {
-                var echocardiogramMachine = new TreatmentMachine { Type = "Echocardiogram", UnderMaintenance = false, TreatmentRoom = cardiologyRoom };
-                var mriScannerMachine = new TreatmentMachine { Type = "MRI Scanner", UnderMaintenance = false, TreatmentRoom = neurologyRoom };
-                var dermascopeMachine = new TreatmentMachine { Type = "Dermascope", UnderMaintenance = false, TreatmentRoom = dermatologyRoom };
+                var echocardiogramMachine = TreatmentMachine.Create("Echocardiogram", false);
+                var mriScannerMachine = TreatmentMachine.Create("MRI Scanner", false);
+                var dermascopeMachine = TreatmentMachine.Create("Dermascope", false);
 
-                dbContext.TreatmentMachines.AddRange(echocardiogramMachine, mriScannerMachine, dermascopeMachine);
-                dbContext.SaveChanges();
+                echocardiogramMachine.AssignToRoom(cardiologyRoom);
+                mriScannerMachine.AssignToRoom(neurologyRoom);
+                dermascopeMachine.AssignToRoom(dermatologyRoom);
 
-                // Update Treatment Rooms with Machine IDs
-                cardiologyRoom.TreatmentMachineId = echocardiogramMachine.Id;
-                neurologyRoom.TreatmentMachineId = mriScannerMachine.Id;
-                dermatologyRoom.TreatmentMachineId = dermascopeMachine.Id;
-
+                dbContext.TreatmentMachines.AddRange(new[] { echocardiogramMachine, mriScannerMachine, dermascopeMachine });
                 dbContext.SaveChanges();
             }
         }

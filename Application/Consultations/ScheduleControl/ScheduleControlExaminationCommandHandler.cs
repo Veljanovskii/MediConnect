@@ -1,5 +1,5 @@
 ﻿using Application.Consultations.Dto;
-using Application.Data;
+using Domain.Interfaces;
 using Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -23,18 +23,10 @@ public class ScheduleControlExaminationCommandHandler : IRequestHandler<Schedule
         if (previousConsultation == null)
             throw new ArgumentException("Previous consultation not found");
 
-        var controlExaminationStartTime = previousConsultation.StartTime.AddDays(14); // Add 2 weeks
+        var controlExaminationStartTime = previousConsultation.StartTime.AddDays(14);
         var roundedStartTime = new DateTime(controlExaminationStartTime.Year, controlExaminationStartTime.Month, controlExaminationStartTime.Day, controlExaminationStartTime.Hour, 0, 0, DateTimeKind.Utc);
 
-        var controlExamination = new Consultation
-        {
-            StartTime = roundedStartTime,
-            EndTime = roundedStartTime.AddHours(1),
-            DoctorId = previousConsultation.DoctorId,
-            PatientId = previousConsultation.PatientId,
-            TreatmentRoomId = previousConsultation.TreatmentRoomId,
-            IsUrgent = false
-        };
+        var controlExamination = Consultation.ScheduleControlExamination(previousConsultation, roundedStartTime);
 
         await _consultationRepository.InsertAsync(controlExamination);
 

@@ -1,5 +1,7 @@
-﻿using Application.Data;
+﻿using Domain.Interfaces;
 using Domain.Entities;
+using Domain.Exceptions;
+using Domain.Specifications;
 using MediatR;
 
 namespace Application.Doctors.UpdateAvailability;
@@ -19,42 +21,38 @@ public class UpdateDoctorAvailabilityCommandHandler : IRequestHandler<UpdateDoct
     {
         var doctor = await _doctorRepository.GetByIdAsync(request.DoctorId);
         if (doctor == null)
-            throw new ArgumentException("Doctor not found");
+            throw new DomainException("Doctor not found");
 
-        doctor.IsAvailable = request.IsAvailable;
+        doctor.UpdateAvailability(request.IsAvailable);
         await _doctorRepository.UpdateAsync(doctor);
 
         if (!request.IsAvailable)
         {
-            await HandleUnavailableDoctor(doctor.Id);
+            await HandleUnavailableDoctor(doctor);
         }
-        
+
         return doctor.Id;
     }
 
-    private async Task HandleUnavailableDoctor(int doctorId)
+    private async Task HandleUnavailableDoctor(Doctor doctor)
     {
-        var consultations = _consultationRepository.Table
-            .Where(c => c.DoctorId == doctorId && c.StartTime > DateTime.UtcNow)
+        var consultationsToReassign = doctor.Consultations
+            .Where(c => c.StartTime > DateTime.UtcNow)
             .ToList();
 
-        foreach (var consultation in consultations)
+        foreach (var consultation in consultationsToReassign)
         {
-            // Find a new available doctor with the same specialization
-            var newDoctor = _doctorRepository.Table
-                .FirstOrDefault(d => d.Specialization == consultation.Doctor.Specialization && d.IsAvailable);
+            var spec = new DoctorAvailableBySpecializationSpecification(consultation.Doctor.Specialization);
+            var newDoctor = await _doctorRepository.GetAsync(spec);
 
             if (newDoctor != null)
             {
-                consultation.DoctorId = newDoctor.Id;
+                doctor.ReassignConsultation(consultation, newDoctor);
                 await _consultationRepository.UpdateAsync(consultation);
-
-                // Notify the patient about the reassignment
                 NotifyPatientReassignment(consultation.PatientId);
             }
             else
             {
-                // Notify the patient that their consultation needs to be rescheduled
                 NotifyPatientReschedule(consultation.PatientId);
             }
         }

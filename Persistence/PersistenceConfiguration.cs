@@ -1,5 +1,5 @@
 ﻿using Application.Data;
-using Application;
+using Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
