@@ -64,16 +64,16 @@ namespace Tests
                 neurologyHistory
             }.AsQueryable();
 
-            var mockMedicalHistory = medicalHistoryData.BuildMock();
-            _medicalHistoryRepositoryMock.Setup(repo => repo.Table)
-                .Returns(mockMedicalHistory);
+            //var mockMedicalHistory = medicalHistoryData.BuildMock();
+            //_medicalHistoryRepositoryMock.Setup(repo => repo.Table)
+            //    .Returns(mockMedicalHistory);
 
             var treatmentRoom = TreatmentRoom.Create("Cardiology Room", "Cardiologist");
             _treatmentRoomRepositoryMock.Setup(repo => repo.GetByIdAsync(treatmentRoomId)).ReturnsAsync(treatmentRoom);
 
-            var mockConsultationData = new List<Consultation>().AsQueryable().BuildMock();
-            _consultationRepositoryMock.Setup(repo => repo.Table)
-                .Returns(mockConsultationData);
+            //var mockConsultationData = new List<Consultation>().AsQueryable().BuildMock();
+            //_consultationRepositoryMock.Setup(repo => repo.Table)
+            //    .Returns(mockConsultationData);
 
             _consultationRepositoryMock.Setup(repo => repo.InsertAsync(It.IsAny<Consultation>()))
                 .Callback((Consultation consultation) =>

@@ -33,13 +33,15 @@ public class ScheduleConsultationCommandHandler : IRequestHandler<ScheduleConsul
         var doctor = await _doctorRepository.GetByIdAsync(request.DoctorId);
         var patientSpec = new PatientWithHistoriesSpecification(request.PatientId);
         var patient = await _patientRepository.GetAsync(patientSpec);
-        var treatmentRoom = await _treatmentRoomRepository.GetByIdAsync(request.TreatmentRoomId);
+        var roomSpec = new TreatmentRoomWithMachineSpecification(request.TreatmentRoomId);
+        var treatmentRoom = await _treatmentRoomRepository.GetAsync(roomSpec);
         var spec = new ConsultationsByDoctorIdSpecification(request.DoctorId);
         var existingConsultations = await _consultationRepository.ListAsync(spec);
+        var roundedStartTime = new DateTime(request.StartTime.Year, request.StartTime.Month, request.StartTime.Day, request.StartTime.Hour, 0, 0, DateTimeKind.Utc);
 
         var newConsultation = Consultation.Create(
             request.DoctorId, request.PatientId, request.TreatmentRoomId,
-            request.StartTime, request.IsUrgent, doctor, patient, treatmentRoom, existingConsultations);
+            roundedStartTime, request.IsUrgent, doctor, patient, treatmentRoom, existingConsultations);
 
         await _consultationRepository.InsertAsync(newConsultation);
 

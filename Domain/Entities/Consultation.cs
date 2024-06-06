@@ -95,7 +95,7 @@ public class Consultation : BaseEntity
         if (previousConsultation == null)
             throw new DomainException("Previous consultation cannot be null.");
 
-        if (startTime < previousConsultation.StartTime.AddDays(14))
+        if (startTime.AddHours(1) < previousConsultation.StartTime.AddDays(14))
             throw new DomainException("Control examination must be scheduled at least two weeks after the initial consultation.");
 
         return new Consultation
